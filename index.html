@@ -37,7 +37,8 @@
                     <div>
                         <label>
                             Min Rate:
-                            <input name="filter-by-rate" type="range" min="0" max="5" value="0" class="filter-rate-range"
+                            <input name="filter-by-rate" type="range" min="0" max="5" value="0"
+                                class="filter-rate-range"
                                 onchange="this.title=this.value;app.onSetFilterBy({minRate: this.value})" />
                         </label>
                     </div>
@@ -66,6 +67,15 @@
             </section>
         </div>
     </main>
+    <dialog class="update-modal">
+        <form method="dialog" onsubmit="app.onSaveLoc(event)">
+            <label for="loc-name">Address:</label>
+            <input type="text" id="name-input">
+            <label for="loc-rate-input">Rate</label>
+            <input type="number" min="1" max="5" id="rate-input">
+            <button>Save</button>
+        </form>
+    </dialog>
     <pre class="debug" hidden></pre>
     <div class="user-msg"></div>
     <script type="module" src="js/app.controller.js"></script>
