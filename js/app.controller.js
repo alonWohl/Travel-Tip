@@ -81,9 +81,12 @@ function renderLocs(locs) {
 }
 
 function onRemoveLoc(locId) {
+  const confirmDelete = confirm(`Are you sure you want to delete this location?`) 
+  if(!confirmDelete) return
   locService
     .remove(locId)
     .then(() => {
+      console.log()
       flashMsg('Location removed')
       unDisplayLoc()
       loadAndRenderLocs()
