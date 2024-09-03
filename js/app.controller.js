@@ -18,6 +18,8 @@ window.app = {
   onSetFilterBy,
 }
 
+var gUserPos
+
 function onInit() {
   getFilterByFromQueryParams()
   loadAndRenderLocs()
@@ -36,7 +38,8 @@ function onInit() {
 function renderLocs(locs) {
   const selectedLocId = getLocIdFromQueryParams()
 
-  var strHTML = locs
+  if(!gUserPos) {
+    var strHTML = locs
     .map((loc) => {
       const className = loc.id === selectedLocId ? 'active' : ''
       return `
@@ -65,8 +68,40 @@ function renderLocs(locs) {
                }')">🗺️</button>
             </div>     
         </li>`
-    })
-    .join('')
+    }).join('')
+  } else {
+      var strHTML = locs
+    .map((loc) => {
+      const className = loc.id === selectedLocId ? 'active' : ''
+      return `
+        <li class="loc ${className}" data-id="${loc.id}">
+            <h4>  
+                <span>${loc.name}</span>
+                <span>Distance from you: ${utilService.getDistance(gUserPos,{lat: loc.geo.lat, lng: loc.geo.lng}, 'k')}</span>
+                <span title="${loc.rate} stars">${'★'.repeat(loc.rate)}</span>
+            </h4>
+            <p class="muted">
+                Created: ${utilService.elapsedTime(loc.createdAt)}
+                ${
+                  loc.createdAt !== loc.updatedAt
+                    ? ` | Updated: ${utilService.elapsedTime(loc.updatedAt)}`
+                    : ''
+                }
+            </p>
+            <div class="loc-btns">     
+               <button title="Delete" onclick="app.onRemoveLoc('${
+                 loc.id
+               }')">🗑️</button>
+               <button title="Edit" onclick="app.onUpdateLoc('${
+                 loc.id
+               }')">✏️</button>
+               <button title="Select" onclick="app.onSelectLoc('${
+                 loc.id
+               }')">🗺️</button>
+            </div>     
+        </li>`
+    }).join('')
+  }
 
   const elLocList = document.querySelector('.loc-list')
   elLocList.innerHTML = strHTML || 'No locs to show'
@@ -151,6 +186,7 @@ function onPanToUserPos() {
       unDisplayLoc()
       loadAndRenderLocs()
       flashMsg(`You are at Latitude: ${latLng.lat} Longitude: ${latLng.lng}`)
+      gUserPos = latLng
     })
     .catch((err) => {
       console.error('OOPs:', err)
