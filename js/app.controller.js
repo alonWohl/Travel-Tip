@@ -16,6 +16,7 @@ window.app = {
   onShareLoc,
   onSetSortBy,
   onSetFilterBy,
+  onSaveLoc,
 }
 
 var gUserPos
@@ -147,25 +148,17 @@ function onSearchAddress(ev) {
 }
 
 function onAddLoc(geo) {
-  const locName = prompt('Loc name', geo.address || 'Just a place')
-  if (!locName) return
+  const elModal = document.querySelector('.update-modal')
+  const elAddressInput = elModal.querySelector('input[type="text"]')
+  const elRateInput = elModal.querySelector('input[type="number"]')
 
-  const loc = {
-    name: locName,
-    rate: +prompt(`Rate (1-5)`, '3'),
-    geo,
-  }
-  locService
-    .save(loc)
-    .then((savedLoc) => {
-      flashMsg(`Added Location (id: ${savedLoc.id})`)
-      utilService.updateQueryParams({ locId: savedLoc.id })
-      loadAndRenderLocs()
-    })
-    .catch((err) => {
-      console.error('OOPs:', err)
-      flashMsg('Cannot add location')
-    })
+  elAddressInput.value = geo.address || 'Just a place'
+  elRateInput.value = 3
+
+  elModal.dataset.locId = ''
+  elModal.dataset.geo = JSON.stringify(geo)
+
+  elModal.showModal()
 }
 
 function loadAndRenderLocs() {
@@ -195,22 +188,81 @@ function onPanToUserPos() {
 }
 
 function onUpdateLoc(locId) {
+  const elModal = document.querySelector('.update-modal')
+  const elAddressInput = elModal.querySelector('input[type="text"]')
+  const elRateInput = elModal.querySelector('input[type="number"]')
+  elModal.showModal()
+
   locService.getById(locId).then((loc) => {
-    const rate = prompt('New rate?', loc.rate)
-    if (rate && rate !== loc.rate) {
-      loc.rate = rate
-      locService
-        .save(loc)
-        .then((savedLoc) => {
-          flashMsg(`Rate was set to: ${savedLoc.rate}`)
-          loadAndRenderLocs()
-        })
-        .catch((err) => {
-          console.error('OOPs:', err)
-          flashMsg('Cannot update location')
-        })
-    }
+    elRateInput.value = loc.rate
+    elAddressInput.value = loc.name
+
+    elModal.showModal()
+
+    elModal.dataset.locId = locId
+    elModal.dataset.locRate = loc.rate
   })
+}
+
+function onSaveLoc(ev) {
+  ev.preventDefault()
+
+  const elModal = document.querySelector('.update-modal')
+  const elAddressInput = elModal.querySelector('input[type="text"]')
+  const elRateInput = elModal.querySelector('input[type="number"]')
+
+  const locName = elAddressInput.value.trim()
+  const locRate = +elRateInput.value
+
+  const locId = elModal.dataset.locId || null
+  const geo = elModal.dataset.geo ? JSON.parse(elModal.dataset.geo) : null
+
+  if (locId) {
+    locService.getById(locId).then((loc) => {
+      if (locName !== loc.name || locRate !== loc.rate) {
+        loc.name = locName
+        loc.rate = locRate
+
+        locService
+          .save(loc)
+          .then((savedLoc) => {
+            flashMsg(`Updated Location (id: ${savedLoc.id})`)
+            loadAndRenderLocs()
+            elModal.close()
+          })
+          .catch((err) => {
+            console.error('OOPs:', err)
+            flashMsg('Cannot update location')
+          })
+      } else {
+        elModal.close()
+      }
+    })
+  } else {
+    if (!geo) {
+      flashMsg('Geolocation data is missing')
+      return
+    }
+
+    const newLoc = {
+      name: locName,
+      rate: locRate,
+      geo,
+    }
+
+    locService
+      .save(newLoc)
+      .then((savedLoc) => {
+        flashMsg(`Added Location (id: ${savedLoc.id})`)
+        utilService.updateQueryParams({ locId: savedLoc.id })
+        loadAndRenderLocs()
+        elModal.close()
+      })
+      .catch((err) => {
+        console.error('OOPs:', err)
+        flashMsg('Cannot add location')
+      })
+  }
 }
 
 function onSelectLoc(locId) {
@@ -318,10 +370,6 @@ function onSetFilterBy({ txt, minRate }) {
 function renderLocStats() {
   locService.getLocCountByRateMap().then((stats) => {
     handleStats(stats, 'loc-stats-rate')
-
-    locService.getLocsCountBylastUpdated().then((stats) => {
-      handleStats(stats, 'loc-stats-last-update')
-    })
   })
 }
 
