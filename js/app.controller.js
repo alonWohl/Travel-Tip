@@ -17,6 +17,7 @@ window.app = {
   onSetSortBy,
   onSetFilterBy,
   onSaveLoc,
+  onCloseModal,
 }
 
 function onInit() {
@@ -384,4 +385,9 @@ function cleanStats(stats) {
     return acc
   }, [])
   return cleanedStats
+}
+
+function onCloseModal() {
+  const elModal = document.querySelector('.update-modal')
+  elModal.close()
 }
